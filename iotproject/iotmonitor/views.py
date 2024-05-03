@@ -10,13 +10,9 @@ from django.utils.decorators import decorator_from_middleware
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.db import connection
+import json
 
 from .models import Thing, TypeOfThing, Sensor
-
-def batata(request):
-    # types = TypeOfThing.objects.all().order_by('name').annotate(things_count=Count('thing'))
-    # things_without_type = Thing.objects.filter(type_of_thing__isnull=True)
-    return render(request, 'iotmonitor/hello_world.html')
 
 def lista_produtos(request):
     with connection.cursor() as cursor:
@@ -36,6 +32,21 @@ def saida_estoque(request, pk):
         cursor.execute("update produtos set estoque=estoque-1 where id=%s and estoque>=0", [pk])
         cursor.execute("SELECT * from produtos where id = %s", [pk])
         row = cursor.fetchone()
+        return HttpResponse(row)
+
+@require_POST
+def cadastro_produto(request):
+    with connection.cursor() as cursor: 
+        corpo = json.loads(request.body)
+        descricao = corpo['descricao']
+        tamanho = corpo['tamanho']
+        estoque = corpo['estoque']
+        codigo = corpo['codigo']
+        preco_compra = corpo['preco_compra']
+        preco_venda = corpo['preco_venda']
+        cursor.execute("insert into produtos (descricao, tamanho, estoque, codigo, preco_compra, preco_venda)\
+        values (%s, %s, %s, %s, %s, %s)", [descricao, tamanho, estoque, codigo, preco_compra, preco_venda])
+        row = cursor.lastrowid
         return HttpResponse(row)
 
 def thing_list(request):
